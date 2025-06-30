@@ -1,0 +1,636 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "documentContent": "={{ $json.content_for_vectorization }}",
+        "fileId": "={{ $json.id }}",
+        "fileTitle": "={{ $json.filename }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentLoaderDefault",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        320
+      ],
+      "id": "8c772c72-911c-43f1-b924-d2e8251e6b8c",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "7273d1e8-1a2e-470f-a3d6-1f4af2bab791",
+      "name": "Embeddings OpenAI1",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        760
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7SA0pzk8iOHbrDsk",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Tool to Add a Google Drive Workflow to Vector DB",
+        "height": 887,
+        "width": 2493,
+        "color": 5
+      },
+      "id": "c6814c2a-f68e-4190-b778-68926516655f",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2000,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Set File ID').item.json.file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "id": "8981f4e9-142c-43bb-aa2b-11216004aa56",
+      "name": "Download File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -960,
+        460
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HNhK8H5Lq7CD4IXH",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1vj7_zbCMxl-n-I3sF1KXkVGvgbakWf8q",
+          "mode": "list",
+          "cachedResultName": "workflows",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1vj7_zbCMxl-n-I3sF1KXkVGvgbakWf8q"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "fa232510-ae05-4e47-b6eb-4598043facfc",
+      "name": "File Created",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1940,
+        360
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HNhK8H5Lq7CD4IXH",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1vj7_zbCMxl-n-I3sF1KXkVGvgbakWf8q",
+          "mode": "list",
+          "cachedResultName": "workflows",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1vj7_zbCMxl-n-I3sF1KXkVGvgbakWf8q"
+        },
+        "event": "fileUpdated",
+        "options": {}
+      },
+      "id": "9a6f4252-087c-4e02-8c88-b152941bee3e",
+      "name": "File Updated",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1940,
+        520
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HNhK8H5Lq7CD4IXH",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "n8n_workflows",
+        "filterType": "string",
+        "filterString": "=metadata->>file_id=like.*{{ $json.file_id }}*"
+      },
+      "id": "34b75473-9c3f-41ea-b1df-c678ccc542ce",
+      "name": "Delete Old Doc Rows",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1320,
+        460
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "1bRagQYe8YKLWsBB",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "10646eae-ae46-4327-a4dc-9987c2d76173",
+              "name": "file_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "f4536df5-d0b1-4392-bf17-b8137fb31a44",
+              "name": "file_type",
+              "value": "={{ $json.mimeType }}",
+              "type": "string"
+            },
+            {
+              "id": "77d782de-169d-4a46-8a8e-a3831c04d90f",
+              "name": "file_title",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "9bde4d7f-e4f3-4ebd-9338-dce1350f9eab",
+              "name": "file_url",
+              "value": "={{ $json.webViewLink }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0759080b-035f-4a11-87a3-ea8953bfeb41",
+      "name": "Set File ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1500,
+        460
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "69fe74cb-53b2-4fbc-8f26-c3e9ac1980ae",
+      "name": "Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        0,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "n8n_workflows",
+          "mode": "list",
+          "cachedResultName": "n8n_workflows"
+        },
+        "options": {
+          "queryName": "match_n8n_workflows"
+        }
+      },
+      "id": "badbbc46-9524-4d16-9365-31a3f67fc7d4",
+      "name": "Insert into Supabase Vectorstore",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        540
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "1bRagQYe8YKLWsBB",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1700,
+        360
+      ],
+      "id": "b96195b3-68e8-4c9e-889f-e96ff7548f13",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_workflows",
+          "mode": "list",
+          "cachedResultName": "n8n_workflows"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "filename": "={{ $json.filename }}",
+            "workflow_name": "={{ $json.workflow_name }}",
+            "description": "={{ $json.description }}",
+            "trigger_type": "={{ $json.trigger_type }}",
+            "complexity": "={{ $json.complexity }}",
+            "node_count": "={{ $json.node_count }}",
+            "integrations": "={{ $json.integrations }}",
+            "tags": "={{ $json.tags }}",
+            "mermaid_diagram": "={{ $json.mermaid_diagram }}",
+            "raw_json": "={{ $json.raw_json }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "filename",
+              "displayName": "filename",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "trigger_type",
+              "displayName": "trigger_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "complexity",
+              "displayName": "complexity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "node_count",
+              "displayName": "node_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "integrations",
+              "displayName": "integrations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "mermaid_diagram",
+              "displayName": "mermaid_diagram",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "raw_json",
+              "displayName": "raw_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "embedding",
+              "displayName": "embedding",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": false,
+              "options": [],
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -1140,
+        460
+      ],
+      "id": "d97f2e15-8a8b-4b10-8b1b-2d7c71d6f1c4",
+      "name": "Insert Document Metadata",
+      "credentials": {
+        "postgres": {
+          "id": "xnUo5PklJhMIH1Tv",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "id": "145ac4c1-5064-4095-93e1-8d7cfac4cb36",
+      "name": "Prepare Workflow for RAG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        460
+      ],
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import json\nfrom typing import Dict, List, Any, Tuple\n\n# Helper to ensure every item is a string\n\ndef _ensure_strings_in_list(data_list: List[Any]) -> List[str]:\n    cleaned = []\n    for item in data_list:\n        if isinstance(item, str):\n            cleaned.append(item)\n        elif isinstance(item, dict):\n            if 'name' in item:\n                cleaned.append(str(item['name']))\n            elif 'id' in item:\n                cleaned.append(str(item['id']))\n            else:\n                cleaned.append(str(item))\n        else:\n            cleaned.append(str(item))\n    return cleaned\n\n# Format filename into a human-readable workflow name\n\ndef format_workflow_name(filename: str) -> str:\n    base = filename.replace('.json', '')\n    parts = base.split('_')\n    if len(parts) > 1 and parts[0].isdigit():\n        parts = parts[1:]\n    special = {'http':'HTTP','api':'API','webhook':'Webhook'}\n    return ' '.join(special.get(p.lower(), p.capitalize()) for p in parts)\n\n# Determine trigger type + integrations\n\ndef analyze_nodes(nodes: List[Dict]) -> Tuple[str, set]:\n    trigger = 'Manual'\n    integrations = set()\n    service_map = {\n        'gmail':'Gmail','googledrive':'Google Drive','slack':'Slack',\n        'webhook':'Webhook','cron':'Scheduled'\n    }\n    for n in nodes:\n        t = n.get('type','').lower()\n        name = n.get('name','').lower()\n        if 'webhook' in t or 'webhook' in name:\n            trigger = 'Webhook'\n        elif 'cron' in t or 'schedule' in t:\n            trigger = 'Scheduled'\n        for key,val in service_map.items():\n            if key in t or key in name:\n                integrations.add(val)\n    if len(nodes)>10 and len(integrations)>3:\n        trigger = 'Complex'\n    return trigger, integrations\n\n# Build a simple Mermaid diagram\n\ndef generate_mermaid_diagram(nodes: List[Dict], connections: Dict) -> str:\n    if not nodes:\n        return 'graph TD\\n  EmptyWorkflow[No nodes found]'
+    ids = {n['name']: f'node{i}' for i,n in enumerate(nodes)}\n    lines = ['graph TD']\n    for n in nodes:\n        nid = ids[n['name']]\n        label = f\"{n['name']}<br>({n['type']})\"\n        lines.append(f\"  {nid}[\\\"{label}\\\"]\")\n    for src, conns in connections.items():\n        if src in ids and isinstance(conns, list):\n            for out in conns:\n                tgt = out.get('node')\n                if tgt in ids:\n                    lines.append(f\"  {ids[src]} --> {ids[tgt]}\")\n    return '\\n'.join(lines)\n\n# Main preparation\n\ndef prepare_workflow_data(workflow_json: Dict, file_id: str, filename: str) -> Dict:\n    nodes = workflow_json.get('nodes', [])\n    connections = workflow_json.get('connections', {})  # <-- fixed missing parenthesis\n    trigger, integ = analyze_nodes(nodes)\n    desc = f\"Uses {len(nodes)} nodes, trigger={trigger}, integrations={list(integ)}\"\n    mermaid = generate_mermaid_diagram(nodes, connections)\n    tags = _ensure_strings_in_list(workflow_json.get('tags', []))\n    return {\n        'id': file_id,\n        'filename': filename,\n        'workflow_name': format_workflow_name(filename),\n        'trigger_type': trigger,\n        'complexity': 'high' if len(nodes)>15 else 'low',\n        'node_count': len(nodes),\n        'integrations': list(integ),\n        'tags': tags,\n        'description': desc,\n        'mermaid_diagram': mermaid,\n        'raw_json': workflow_json\n    }\n\n# n8n entrypoint\nworkflow_json_input = n8n.getInputData()[0].json\nfile_id = $node['Set File ID'].json['file_id']\nfilename = $node['Set File ID'].json['file_title']\nprepared = prepare_workflow_data(workflow_json_input, file_id, filename)\n\n# Return as list of one item\nreturn [{'json': prepared}]"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        460
+      ],
+      "id": "2e5a8e54-10ad-4dd6-8bd3-5fe8e18039f0",
+      "name": "Extract from JSON"
+    }
+  ],
+  "connections": {
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert into Supabase Vectorstore",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert into Supabase Vectorstore",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Extract from JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Created": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Updated": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Old Doc Rows": {
+      "main": [
+        [
+          {
+            "node": "Insert into Supabase Vectorstore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set File ID": {
+      "main": [
+        [
+          {
+            "node": "Delete Old Doc Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert into Supabase Vectorstore": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Set File ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Document Metadata": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Workflow for RAG": {
+      "main": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Document Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from JSON": {
+      "main": [
+        [
+          {
+            "node": "Prepare Workflow for RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "417b0a8b2a10d0a50938a93dd6b8dd01385b21d758ab43693102c5df3493c401"
+  }
+}
