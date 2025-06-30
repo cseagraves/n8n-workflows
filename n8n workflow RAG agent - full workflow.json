@@ -1,0 +1,577 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "id": "ec7ccb73-3072-4d70-8602-2730da8781a7",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1760,
+        -300
+      ],
+      "webhookId": "5208e335-4bbc-4477-af0e-d844d46c2eaf"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "CREATE EXTENSION IF NOT EXISTS vector;\n\nCREATE TABLE IF NOT EXISTS n8n_workflows (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    filename TEXT UNIQUE NOT NULL,\n    workflow_name TEXT,\n    description TEXT,\n    trigger_type TEXT,\n    complexity TEXT,\n    node_count INT,\n    integrations JSONB DEFAULT '[]'::jsonb,\n    tags JSONB DEFAULT '[]'::jsonb,\n    mermaid_diagram TEXT,\n    raw_json JSONB DEFAULT '{}'::jsonb,\n    embedding VECTOR(1536)\n);\n\n-- Optional: Create an index for faster similarity search on the embedding column\nCREATE INDEX IF NOT EXISTS ON n8n_workflows USING ivfflat (embedding vector_l2_ops) WITH (lists = 100);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -1880,
+        0
+      ],
+      "id": "46312371-bc4b-4270-a570-e780a42d326c",
+      "name": "Initialize n8n_workflows Table",
+      "credentials": {
+        "postgres": {
+          "id": "xnUo5PklJhMIH1Tv",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Create a function to search for n8n_workflows\nCREATE OR REPLACE FUNCTION match_n8n_workflows (\n  query_embedding VECTOR(1536),\n  match_count INT DEFAULT NULL,\n  filter JSONB DEFAULT '{}'\n) RETURNS TABLE (\n  id UUID,\n  filename TEXT,\n  workflow_name TEXT,\n  description TEXT,\n  trigger_type TEXT,\n  complexity TEXT,\n  node_count INT,\n  integrations JSONB,\n  tags JSONB,\n  mermaid_diagram TEXT,\n  similarity FLOAT\n)\nLANGUAGE plpgsql\nAS $$-- #variable_conflict use_column\nBEGIN\n  RETURN QUERY\n  SELECT\n    id,\n    filename,\n    workflow_name,\n    description,\n    trigger_type,\n    complexity,\n    node_count,\n    integrations,\n    tags,\n    mermaid_diagram,\n    1 - (n8n_workflows.embedding <=> query_embedding) AS similarity\n  FROM n8n_workflows\n  WHERE (filter = '{}'::jsonb OR filter @> jsonb_build_object('id', id::text)) -- Corrected filter logic\n  ORDER BY n8n_workflows.embedding <=> query_embedding\n  LIMIT match_count;\nEND;\n$$;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -1640,
+        0
+      ],
+      "id": "941c4146-39ba-48cb-919d-602f5b36d4a5",
+      "name": "Create n8n_workflows Match Function",
+      "credentials": {
+        "postgres": {
+          "id": "xnUo5PklJhMIH1Tv",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Run Each Node Once to Set Up Database Tables",
+        "height": 300,
+        "width": 680,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2000,
+        -100
+      ],
+      "typeVersion": 1,
+      "id": "70306490-8ac4-4ae0-99e9-c5fb0d585a56",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to filter and retrieve N8N workflows based on a specified category. It searches across workflow name, description, integrations, and tags for the category keyword.",
+        "operation": "executeQuery",
+        "query": "SELECT id, filename, workflow_name, description, trigger_type, complexity, node_count, integrations, tags, mermaid_diagram, raw_json FROM n8n_workflows WHERE LOWER(workflow_name) LIKE LOWER('%' || $1 || '%') OR LOWER(description) LIKE LOWER('%' || $1 || '%') OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(integrations) AS integration WHERE LOWER(integration) LIKE LOWER('%' || $1 || '%')) OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(tags) AS tag WHERE LOWER(tag) LIKE LOWER('%' || $1 || '%'));",
+        "options": {
+          "queryReplacement": "={{ $fromAI('category_name') }}"
+        }
+      },
+      "id": "49f76cc5-0e91-4adc-944c-b71ea36d7c72",
+      "name": "Filter N8N Workflows by Category",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        -460,
+        20
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "xnUo5PklJhMIH1Tv",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Agent Tools for RAG",
+        "height": 609,
+        "width": 583,
+        "color": 4
+      },
+      "id": "5f3f18ef-a0c6-4b32-a1ee-22fa427fae7e",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        -400
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "dc2bc4f3-5ca7-48bb-80d7-1f43793bca19",
+      "name": "Postgres Chat Memory2",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1,
+      "position": [
+        -920,
+        20
+      ],
+      "notesInFlow": false,
+      "credentials": {
+        "postgres": {
+          "id": "xnUo5PklJhMIH1Tv",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## RAG AI Agent with Chat Interface",
+        "height": 605,
+        "width": 1196
+      },
+      "id": "bb244558-81cf-4797-97c0-a7ce3c9e0db2",
+      "name": "Sticky Note8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1300,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "b7727c1c-189a-4311-b7a9-126ca031a723",
+      "name": "Respond to Webhook2",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a9a245e-f1a1-4282-bb02-a81ffe629f0f",
+              "name": "chatInput",
+              "value": "={{ $json?.chatInput || $json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "b80831d8-c653-4203-8706-adedfdb98f77",
+              "name": "sessionId",
+              "value": "=233798682429",
+              "type": "string"
+            },
+            {
+              "id": "e47e9b95-bf15-4888-a258-d917fea28d26",
+              "name": "sessionId_org",
+              "value": "={{ $json?.sessionId || $json.body.sessionId}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2adc1411-00da-4aee-8b8b-7262fff54e6f",
+      "name": "Edit Fields2",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1000,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cfacf4bd-d8a0-4a54-9e5d-f7d4b667c7c3",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "17b32014-ab13-4ba6-9bbc-8738a95f4dc9",
+      "name": "Webhook2",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1260,
+        -60
+      ],
+      "webhookId": "cfacf4bd-d8a0-4a54-9e5d-f7d4b667c7c3",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IRV4S8FpLS3xIEpH",
+          "name": "Tavily"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are a personal assistant who helps answer questions from a corpus of documents. The documents are either text based (Txt, docs, extracted PDFs, etc.) or tabular data (CSVs or Excel documents).\n\nYou are given tools to perform RAG in the 'documents' table, look up the documents available in your knowledge base in the 'document_metadata' table, extract all the text from a given document, and query the tabular files with SQL in the 'document_rows' table.\n\nAlways start by performing RAG unless the question requires a SQL query for tabular data (fetching a sum, finding a max, something a RAG lookup would be unreliable for). If RAG doesn't help, then look at the documents that are available to you, find a few that you think would contain the answer, and then analyze those.\n\nAlways tell the user if you didn't find the answer. Don't make something up just to please them.\n\n### Additional Tools:\n- **List N8N Categories**: Use this tool to get a comprehensive list of all predefined N8N workflow categories. This is useful when the user asks \"What categories are available?\" or wants to browse available topics.\n- **Filter N8N Workflows by Category**: Use this tool when the user specifically asks to find workflows related to a particular category (e.g., \"Show me workflows for Marketing Automation\"). Provide the category name as a parameter."
+        }
+      },
+      "id": "9d9be70f-3537-4f8a-9e02-0643a6a81bfb",
+      "name": "RAG AI Agent2",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        -780,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to fetch all available n8n workflow documents and their metadata.",
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_workflows",
+          "mode": "list",
+          "cachedResultName": "n8n_workflows"
+        },
+        "returnAll": true,
+        "options": {
+          "outputColumns": [
+            "id",
+            "filename",
+            "workflow_name",
+            "description",
+            "trigger_type",
+            "complexity",
+            "node_count",
+            "integrations",
+            "tags",
+            "mermaid_diagram",
+            "raw_json"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        -760,
+        20
+      ],
+      "id": "2177b843-d6c7-48cb-a092-c200bb5abf35",
+      "name": "List N8N Workflows2",
+      "credentials": {
+        "postgres": {
+          "id": "xnUo5PklJhMIH1Tv",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Given a workflow filename (e.g., '0001_Telegram_Schedule_Automation_Scheduled.json'), fetches the raw JSON content of the n8n workflow.",
+        "operation": "executeQuery",
+        "query": "SELECT raw_json FROM n8n_workflows WHERE filename = $1;",
+        "options": {
+          "queryReplacement": "={{ $fromAI('filename') }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        -620,
+        20
+      ],
+      "id": "beb24135-1c1c-492a-9f8d-068e6881b8fb",
+      "name": "Get N8N Workflow Raw JSON2",
+      "credentials": {
+        "postgres": {
+          "id": "xnUo5PklJhMIH1Tv",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "documents",
+        "toolDescription": "Use RAG to look up n8n workflows in the knowledgebase.",
+        "tableName": {
+          "__rl": true,
+          "value": "n8n_workflows",
+          "mode": "list",
+          "cachedResultName": "n8n_workflows"
+        },
+        "topK": 15,
+        "useReranker": true,
+        "options": {
+          "queryName": "match_n8n_workflows"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        60,
+        -260
+      ],
+      "id": "6dae79b2-f14e-4716-ad97-38d1c8ab5f75",
+      "name": "Supabase Vector Store2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1bRagQYe8YKLWsBB",
+          "name": "supabase-caiyman-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        20,
+        -80
+      ],
+      "id": "97761dee-0a79-4cbe-8a61-a3a23f40801a",
+      "name": "Embeddings OpenAI3",
+      "credentials": {
+        "openAiApi": {
+          "id": "7SA0pzk8iOHbrDsk",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4.1",
+        "options": {
+          "maxTokens": "={{ $json.max_tokens }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1060,
+        20
+      ],
+      "id": "5e0b7bef-e550-4416-b49e-3a8bc92bf6f9",
+      "name": "gpt-4.2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "72mF2DZvmuIMyDu5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -80
+      ],
+      "id": "99e56c3a-8caf-4cba-9fd0-ef902d5995ce",
+      "name": "Reranker Cohere2",
+      "credentials": {
+        "cohereApi": {
+          "id": "tiKjMkl5HAFxag5g",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to list the n8n workflow categories",
+        "jsCode": "return [{\n  json: {\n    categories: [\n      \"AI Agent Development\",\n      \"Business Process Automation\",\n      \"CRM & Sales\",\n      \"Cloud Storage & File Management\",\n      \"Communication & Messaging\",\n      \"Creative Content & Video Automation\",\n      \"Creative Design & Image Generation\",\n      \"Data Automation & ETL\",\n      \"Database Management\",\n      \"E-commerce\",\n      \"Finance & Accounting\",\n      \"Human Resources\",\n      \"IT Operations\",\n      \"Marketing Automation\",\n      \"Product Management\",\n      \"Project Management\",\n      \"Real Estate\",\n      \"Social Media\",\n      \"Software Development\",\n      \"Support & Customer Service\",\n      \"Website & SEO\"\n    ]\n  }\n}];"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -280,
+        20
+      ],
+      "id": "9d65913d-1fab-4e21-bb48-0970e9c998eb",
+      "name": "n8n workflow categories"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize n8n_workflows Table": {
+      "main": [
+        [
+          {
+            "node": "Create n8n_workflows Match Function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter N8N Workflows by Category": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "RAG AI Agent2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "RAG AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List N8N Workflows2": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get N8N Workflow Raw JSON2": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store2": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI3": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gpt-4.2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "RAG AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere2": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Supabase Vector Store2",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "n8n workflow categories": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "417b0a8b2a10d0a50938a93dd6b8dd01385b21d758ab43693102c5df3493c401"
+  }
+}
